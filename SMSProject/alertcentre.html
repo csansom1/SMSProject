@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/19.2.6/css/dx.common.css" />
+    <link rel="stylesheet" type="text/css" href="https://cdn3.devexpress.com/jslib/19.2.6/css/dx.light.css" />
+    <style>
+        .row {
+            display: flex;
+        }
+
+        .feild {
+           margin-right: 10px;
+        }
+
+        .title {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .sub-header {
+            font-size: 18px;
+        }
+
+        #header {
+            font-size: 24px;
+            text-align: center;
+            padding: 10px 0;
+            border-width: thin;
+            background-color: #e6f0ff;
+        }
+
+        .column {
+            padding: 10px;
+            flex: 50%;
+        }
+
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn3.devexpress.com/jslib/19.2.6/js/dx.all.js"></script>
+    <script>
+        var getStats = function getStats() {
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/GetStats',
+                success: function (result) {
+                    var stats = result.split(";");
+                    $("#30min").html(stats[0]);
+                    $("#24hr").html(stats[1]);
+                    $("#7day").html(stats[2]);
+                    $("#30day").html(stats[3]);
+                    $("#alltime").html(stats[4]);
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+        var getUsers = function getUsers() {
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/GetUsers',
+                success: function (result) {
+                    var users = result.split(";");
+                    $("#select").dxSelectBox({
+                        items: users,
+                        width: 300
+                    });
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+        var updateNumber = function updateNumber() {
+            var select = $("#select").dxSelectBox("instance");
+            var numberFeild = $("#newNumber").dxTextBox("instance");
+            var name = select.option("value");
+            var newNumber = numberFeild.option("value");
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/SetNewNumber',
+                data: {
+                    NameAndNumber: name,
+                    PhoneNumber: newNumber
+                },
+                datatype: 'json',
+                cache: false,
+                success: function (result) {
+                    getUsers();
+                    $("#message").html("Phone number changed to " + newNumber)
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+        var getLog = function getLog() {
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/GetGridEntires',
+                success: function (result) {
+                    $("#grid").dxDataGrid({
+                        dataSource: result,
+                        noDataText: "No entries found.",
+                        showBorders: true,
+                        paging: {
+                            pageSize: 10
+                        },
+                        pager: {
+                            showPageSizeSelector: true,
+                            allowedPageSizes: [5, 10, 20],
+                            showInfo: true
+                        },
+                        filterRow: { visible: true },
+                        headerFilter: { visible: true },
+                        columns: [
+                            { dataField: "Farm", caption: "Farm", width: '15%' },
+                            { dataField: "Event", caption: "Event", width: '5%' },
+                            { dataField: "Message", caption: "Message", allowHeaderFiltering: false, width: '50%' },
+                            { dataField: "Date", caption: "Date", dataType: "date", format: "MM/dd/yyyy HH:mm:ss", allowHeaderFiltering: false, width: '11%' },
+                            { dataField: "Recipient", caption: "Recipient", width: '11%' },
+                            { dataField: "PhoneNumber", caption: "Phone Number", width: '8%' }
+                        ]
+                    });
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+        var getLastCall = function getLastCall() {
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/GetLastCall',
+                success: function (result) {
+                    var timestamps = result.split(";");
+                    $("#lastCall").html(timestamps[0]);
+                    $("#lastAlert").html(timestamps[1]);
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            $("#newNumber").dxTextBox({
+                mask: "+X (000) 000-0000",
+                maskRules: { "X": /[01-9]/ },
+                width: 150
+            });
+            $("#updateButton").dxButton({
+                stylingMode: "outlined",
+                text: "Change Number",
+                type: "normal",
+                width: 150,
+                onClick: function () {
+                    updateNumber();
+                }
+            });
+            getUsers();
+            getStats();
+            getLastCall();
+            getLog();
+            setInterval(function () {
+                getStats();
+                getLastCall();
+                getLog();
+            }, 15 * 60 * 1000);
+        })
+    </script>
+</head>
+<body>
+    <div  class="row">
+        <div id="PanelSWhow">
+            <div id="adminAlertsList">
+                <div>
+                    <div id="header" class="title">SMS Service Log</div>
+                </div>
+                <div class="dx-viewport">
+                    <div class="demo-container">
+                        <div id="grid" class="dx-widget dx-visibility-change-handler" role="presentation"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div id="serviceStats" class="column">
+            <h3 id="userSettings" class="column title">SMS Service Stats:</h3>
+            <div class="row">
+                <div class="column" style="text-align: right">
+                    <div>Alerts sent in the last 30 minutes:</div>
+                    <div>Alerts sent today:</div>
+                    <div>Alerts sent in the last 7 days:</div>
+                    <div>Alerts sent in the last 30 days:</div>
+                    <div>Total alerts sent:</div>
+                    <div>Time of Last Service Call:</div>
+                    <div>Time of Last Sent SMS:</div>
+                </div>
+                <div class="column">
+                    <div id="30min"></div>
+                    <div id="24hr"></div>
+                    <div id="7day"></div>
+                    <div id="30day"></div>
+                    <div id="alltime"></div>
+                    <div id="lastCall"></div>
+                    <div id="lastAlert"></div>
+                </div>
+            </div>
+        </div>
+        <div id="userSettings" class="column">
+            <h3  class="title sub-header">User Settings:</h3>
+            <div class="feild">Update user phone number:</div>
+            <div class="row">
+                <div id="select" class="feild"></div>
+                <div id="newNumber" class="feild"></div>
+                <div id="updateButton" class="feild"></div>
+            </div>
+            <div id="message"></div>
+        </div>
+    </div>
+</body>
+</html>

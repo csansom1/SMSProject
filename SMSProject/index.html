@@ -1,0 +1,46 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        var sendSMS = function sendSMS() {
+            $("#result").html("Checking for alerts...");
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/SendAlerts',
+                success: function (msg) {
+                    $("#result").html(msg);
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+        var startService = function startService() {
+            sendSMS();
+    //        setInterval(function () { sendSMS() }, 30 * 60 * 1000);
+        }
+
+        var enable_disable = function enable_disable() {
+            $.ajax({
+                type: "POST",
+                url: 'db.asmx/EnableDisable',
+                success: function (msg) {
+                    document.getElementById("enable_button").value = msg;
+                }, error: function (e) {
+                    alert('Could not connect to web service.');
+                }
+            });
+        }
+
+    </script>
+</head>
+<body onload="startService()">
+    <div>
+        <input id="enable_button" type="button" value="Disable SMS Service" onclick="enable_disable()" />
+    </div>
+    <div id="result"></div>
+</body>
+</html>
